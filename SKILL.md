@@ -1,6 +1,6 @@
 ---
 name: jupiter-skill
-description: Execute Jupiter API operations on Solana - fetch quotes, sign transactions, execute swaps. Use when implementing token swaps, DCA, limit orders, or any Jupiter integration. Includes scripts for Ultra and Metis swap flows.
+description: Execute Jupiter API operations on Solana - fetch quotes, sign transactions, execute swaps, prediction markets. Use when implementing token swaps, DCA, limit orders, lending, prediction markets, or any Jupiter integration. Includes scripts for Ultra and Metis swap flows.
 ---
 
 # Jupiter API Skill
@@ -245,20 +245,368 @@ Check signature on Solscan.
 
 ---
 
+### Prediction Markets (Beta)
+
+Trade on real-world event outcomes. Contracts trade $0-$1 USD, with prices reflecting outcome probability.
+
+```
+Prediction Market Flow:
+- [ ] Step 1: Browse events/markets
+- [ ] Step 2: Create order (buy YES/NO contracts)
+- [ ] Step 3: Sign and send transaction
+- [ ] Step 4: Monitor position
+- [ ] Step 5: Claim winnings (if correct)
+```
+
+**Step 1: Browse Events**
+
+```bash
+# Search for events
+pnpm fetch-api -e /prediction/v1/events/search -p '{"query":"election","limit":"10"}'
+
+# List all events
+pnpm fetch-api -e /prediction/v1/events -p '{"category":"politics","includeMarkets":"true"}'
+
+# Get specific event with markets
+pnpm fetch-api -e /prediction/v1/events/{eventId} -p '{"includeMarkets":"true"}'
+```
+
+**Step 2: Create Order**
+
+```bash
+# Buy YES contracts on a market
+ORDER=$(pnpm fetch-api -e /prediction/v1/orders -m POST -b '{
+  "ownerPubkey": "YOUR_WALLET_ADDRESS",
+  "marketId": "MARKET_ID",
+  "isYes": true,
+  "isBuy": true,
+  "contracts": 10,
+  "maxBuyPriceUsd": 0.65
+}')
+```
+
+Response contains `transaction` (base64 unsigned) and order details.
+
+**Step 3: Sign and Send**
+
+```bash
+UNSIGNED_TX=$(echo "$ORDER" | jq -r '.transaction')
+SIGNED_TX=$(pnpm wallet-sign -t "$UNSIGNED_TX" -w ~/.config/solana/id.json)
+pnpm send-transaction -t "$SIGNED_TX" -r "YOUR_RPC_URL"
+```
+
+**Step 4: Monitor Position**
+
+```bash
+# List your positions
+pnpm fetch-api -e /prediction/v1/positions -p '{"ownerPubkey":"YOUR_WALLET_ADDRESS"}'
+
+# Get specific position
+pnpm fetch-api -e /prediction/v1/positions/{positionPubkey}
+
+# View order history
+pnpm fetch-api -e /prediction/v1/history -p '{"ownerPubkey":"YOUR_WALLET_ADDRESS"}'
+```
+
+**Step 5: Claim Winnings**
+
+After market resolves, claim payout for winning positions:
+
+```bash
+CLAIM=$(pnpm fetch-api -e /prediction/v1/positions/{positionPubkey}/claim -m POST -b '{
+  "ownerPubkey": "YOUR_WALLET_ADDRESS"
+}')
+UNSIGNED_TX=$(echo "$CLAIM" | jq -r '.transaction')
+SIGNED_TX=$(pnpm wallet-sign -t "$UNSIGNED_TX" -w ~/.config/solana/id.json)
+pnpm send-transaction -t "$SIGNED_TX" -r "YOUR_RPC_URL"
+```
+
+**Prediction API Endpoints**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/prediction/v1/events` | List events with filters |
+| GET | `/prediction/v1/events/search` | Search events by query |
+| GET | `/prediction/v1/events/{eventId}` | Get event details |
+| GET | `/prediction/v1/markets/{marketId}` | Get market details |
+| GET | `/prediction/v1/orderbook/{marketId}` | Get orderbook |
+| POST | `/prediction/v1/orders` | Create order (returns unsigned tx) |
+| DELETE | `/prediction/v1/orders` | Close/cancel order |
+| GET | `/prediction/v1/positions` | List user positions |
+| DELETE | `/prediction/v1/positions/{positionPubkey}` | Sell position |
+| POST | `/prediction/v1/positions/{positionPubkey}/claim` | Claim winnings |
+| GET | `/prediction/v1/leaderboards` | View leaderboards |
+| GET | `/prediction/v1/profiles/{ownerPubkey}` | User profile stats |
+
+**Key Concepts**
+
+- **Contracts**: Trade in units, each worth $0-$1 based on probability
+- **YES/NO**: Binary outcomes - buy YES if you think event happens, NO otherwise
+- **Settlement**: Winning contracts pay $1, losing contracts pay $0
+- **No claim fees**: Winners receive full $1 per contract
+
+---
+
+### Jupiter Lend
+
+Deposit tokens to earn yield or borrow against collateral.
+
+**Deposit (Earn)**
+
+```bash
+# Get deposit transaction
+DEPOSIT=$(pnpm fetch-api -e /lend/v1/earn/deposit -m POST -b '{
+  "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "amount": "1000000",
+  "signer": "YOUR_WALLET_ADDRESS"
+}')
+
+# Sign and send
+UNSIGNED_TX=$(echo "$DEPOSIT" | jq -r '.transaction')
+SIGNED_TX=$(pnpm wallet-sign -t "$UNSIGNED_TX" -w ~/.config/solana/id.json)
+pnpm send-transaction -t "$SIGNED_TX" -r "YOUR_RPC_URL"
+```
+
+**Withdraw**
+
+```bash
+WITHDRAW=$(pnpm fetch-api -e /lend/v1/earn/withdraw -m POST -b '{
+  "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "amount": "1000000",
+  "signer": "YOUR_WALLET_ADDRESS"
+}')
+# Sign and send as above
+```
+
+---
+
+### Portfolio API
+
+Track DeFi positions, platform info, and staked JUP across Solana.
+
+**Get Positions**
+
+Fetch all positions for a wallet address across Jupiter products.
+
+```bash
+# Get all positions
+pnpm fetch-api -e /portfolio/v1/positions/YOUR_WALLET_ADDRESS
+
+# Filter by specific platforms
+pnpm fetch-api -e /portfolio/v1/positions/YOUR_WALLET_ADDRESS -p '{"platforms":"jupiter-exchange,jupiter-governance"}'
+```
+
+Response includes:
+- `elements`: Array of position types (Multiple, Liquidity, Leverage, BorrowLend, Trade)
+- `tokenInfo`: Token metadata indexed by network and address
+- `fetcherReports`: Status of each data fetcher
+
+**Get Platforms**
+
+List all available platforms tracked by the Portfolio API.
+
+```bash
+pnpm fetch-api -e /portfolio/v1/platforms
+```
+
+Response includes platform details:
+- `id`: Platform identifier (e.g., `jupiter-exchange`)
+- `name`: Display name
+- `image`: Logo URL
+- `description`: Platform summary
+- `defiLlamaId`: DefiLlama reference
+- `isDeprecated`: Whether platform is deprecated
+- `tags`: Categorization tags
+- `links`: Social/web links (website, discord, twitter, github, docs)
+
+**Get Staked JUP**
+
+Check staked JUP amounts and pending unstaking for a wallet.
+
+```bash
+pnpm fetch-api -e /portfolio/v1/staked-jup/YOUR_WALLET_ADDRESS
+```
+
+Response:
+```json
+{
+  "stakedAmount": 15000.5,
+  "unstaking": [
+    {
+      "amount": 500,
+      "until": 1711000000000
+    }
+  ]
+}
+```
+
+- `stakedAmount`: Total staked JUP
+- `unstaking`: Pending unstakes with amount and completion timestamp (ms)
+
+---
+
+### Trigger API (Limit Orders)
+
+Create orders that execute automatically when price conditions are met.
+
+**Create Limit Order**
+
+```bash
+ORDER=$(pnpm fetch-api -e /trigger/v1/createOrder -m POST -b '{
+  "inputMint": "So11111111111111111111111111111111111111112",
+  "outputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "maker": "YOUR_WALLET_ADDRESS",
+  "payer": "YOUR_WALLET_ADDRESS",
+  "params": {
+    "makingAmount": "1000000000",
+    "takingAmount": "150000000",
+    "expiredAt": null
+  }
+}')
+
+# Sign and send
+UNSIGNED_TX=$(echo "$ORDER" | jq -r '.transaction')
+SIGNED_TX=$(pnpm wallet-sign -t "$UNSIGNED_TX" -w ~/.config/solana/id.json)
+pnpm send-transaction -t "$SIGNED_TX" -r "YOUR_RPC_URL"
+```
+
+Parameters:
+- `makingAmount`: Amount of input token to sell (in smallest units)
+- `takingAmount`: Minimum amount of output token to receive
+- `expiredAt`: Unix timestamp for expiration (null = no expiry)
+- `slippageBps`: Optional slippage tolerance (0 = exact price only)
+
+**Get Orders**
+
+```bash
+# Get active orders
+pnpm fetch-api -e /trigger/v1/getTriggerOrders -p '{"user":"YOUR_WALLET","orderStatus":"active"}'
+
+# Get order history
+pnpm fetch-api -e /trigger/v1/getTriggerOrders -p '{"user":"YOUR_WALLET","orderStatus":"history","page":"1"}'
+```
+
+**Cancel Order**
+
+```bash
+# Cancel single order
+CANCEL=$(pnpm fetch-api -e /trigger/v1/cancelOrder -m POST -b '{
+  "maker": "YOUR_WALLET_ADDRESS",
+  "order": "ORDER_ACCOUNT_ADDRESS",
+  "computeUnitPrice": "auto"
+}')
+# Sign and send transaction
+
+# Cancel all orders (batched in groups of 5)
+CANCEL_ALL=$(pnpm fetch-api -e /trigger/v1/cancelOrders -m POST -b '{
+  "maker": "YOUR_WALLET_ADDRESS",
+  "computeUnitPrice": "auto"
+}')
+```
+
+**Trigger API Endpoints**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/trigger/v1/createOrder` | Create limit order |
+| GET | `/trigger/v1/getTriggerOrders` | Get orders by wallet |
+| POST | `/trigger/v1/cancelOrder` | Cancel single order |
+| POST | `/trigger/v1/cancelOrders` | Cancel multiple orders (batched) |
+
+**Fees**: 0.03% for stable pairs, 0.1% for other pairs.
+
+---
+
+### Recurring API (DCA)
+
+Automate recurring token purchases at specified intervals.
+
+**Create DCA Order**
+
+```bash
+ORDER=$(pnpm fetch-api -e /recurring/v1/createOrder -m POST -b '{
+  "user": "YOUR_WALLET_ADDRESS",
+  "inputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "outputMint": "So11111111111111111111111111111111111111112",
+  "params": {
+    "time": {
+      "inAmount": "10000000",
+      "numberOfOrders": 10,
+      "interval": 86400,
+      "minPrice": null,
+      "maxPrice": null,
+      "startAt": null
+    }
+  }
+}')
+
+# Sign and send
+UNSIGNED_TX=$(echo "$ORDER" | jq -r '.transaction')
+SIGNED_TX=$(pnpm wallet-sign -t "$UNSIGNED_TX" -w ~/.config/solana/id.json)
+pnpm send-transaction -t "$SIGNED_TX" -r "YOUR_RPC_URL"
+```
+
+Parameters:
+- `inAmount`: Total amount to spend (raw units)
+- `numberOfOrders`: How many purchases to make
+- `interval`: Seconds between purchases (86400 = daily)
+- `minPrice`/`maxPrice`: Optional price bounds (null = any price)
+- `startAt`: Unix timestamp to start (null = immediate)
+
+**Get Orders**
+
+```bash
+# Get active DCA orders
+pnpm fetch-api -e /recurring/v1/getRecurringOrders -p '{"user":"YOUR_WALLET","orderStatus":"active","recurringType":"time"}'
+
+# Get order history
+pnpm fetch-api -e /recurring/v1/getRecurringOrders -p '{"user":"YOUR_WALLET","orderStatus":"history","recurringType":"time","page":"1"}'
+```
+
+**Cancel Order**
+
+```bash
+CANCEL=$(pnpm fetch-api -e /recurring/v1/cancelOrder -m POST -b '{
+  "user": "YOUR_WALLET_ADDRESS",
+  "order": "ORDER_ACCOUNT_ADDRESS",
+  "recurringType": "time"
+}')
+# Sign and send transaction
+```
+
+**Recurring API Endpoints**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/recurring/v1/createOrder` | Create DCA order |
+| GET | `/recurring/v1/getRecurringOrders` | Get orders by wallet |
+| POST | `/recurring/v1/cancelOrder` | Cancel order |
+
+**Fees**: 0.1% per execution. Token2022 tokens NOT supported.
+
+---
+
 ## API Endpoints Reference
 
 | Use Case | API | Endpoint |
 |----------|-----|----------|
 | Token swaps (default) | Ultra | `/ultra/v1/order`, `/ultra/v1/execute` |
 | Swaps with control | Metis | `/swap/v1/quote`, `/swap/v1/swap` |
-| Limit orders | Trigger | `/trigger/v1/createOrder`, `/trigger/v1/execute` |
-| DCA | Recurring | `/recurring/v1/createOrder`, `/recurring/v1/execute` |
+| Limit orders | Trigger | `/trigger/v1/createOrder`, `/trigger/v1/cancelOrder` |
+| Get limit orders | Trigger | `/trigger/v1/getTriggerOrders` |
+| DCA orders | Recurring | `/recurring/v1/createOrder`, `/recurring/v1/cancelOrder` |
+| Get DCA orders | Recurring | `/recurring/v1/getRecurringOrders` |
 | Token search | Ultra | `/ultra/v1/search` |
 | Token holdings | Ultra | `/ultra/v1/holdings/{address}` |
 | Token warnings | Ultra | `/ultra/v1/shield` |
 | Token prices | Price | `/price/v3?ids={mints}` |
 | Token metadata | Tokens | `/tokens/v2/search?query={query}` |
-| Portfolio | Portfolio | `/portfolio/v1/positions?wallet={address}` |
+| Portfolio positions | Portfolio | `/portfolio/v1/positions/{address}` |
+| Portfolio platforms | Portfolio | `/portfolio/v1/platforms` |
+| Staked JUP | Portfolio | `/portfolio/v1/staked-jup/{address}` |
+| Prediction markets | Prediction | `/prediction/v1/events`, `/prediction/v1/orders` |
+| Lending deposit | Lend | `/lend/v1/earn/deposit` |
+| Lending withdraw | Lend | `/lend/v1/earn/withdraw` |
 
 ---
 

@@ -1,5 +1,3 @@
-# integrating-jupiter
-
 A Claude Code skill for executing Jupiter API operations on Solana. Includes scripts for fetching quotes, signing transactions, and executing swaps.
 
 ## Prerequisites
@@ -125,7 +123,7 @@ Add to your Claude Code skills directory:
 
 ```bash
 # Link or copy to skills directory
-ln -s /path/to/jup-skill ~/.claude/skills/integrating-jupiter
+ln -s /path/to/jup-skill ~/.claude/skills/jup-skill
 ```
 
 ## Troubleshooting
@@ -158,4 +156,3 @@ Check that your wallet has enough SOL for fees and the input token. Note: Even "
 ## License
 
 MIT
-# jup-skill
