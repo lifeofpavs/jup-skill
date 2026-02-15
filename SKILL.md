@@ -36,6 +36,8 @@ cd /path/to/jup-skill
 pnpm install
 ```
 
+Run `pnpm install` once per clone (and again after dependency changes) before any `pnpm fetch-api`, `pnpm wallet-sign`, `pnpm execute-ultra`, or `pnpm send-transaction` command.
+
 ## API Key Setup
 
 **ALWAYS required.** All Jupiter API endpoints require an `x-api-key` header.

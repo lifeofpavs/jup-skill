@@ -58,6 +58,12 @@ pnpm wallet-sign -t "TX" --wallet ~/my-wallets/trading.json
 
 ## Usage
 
+Before running any script command below, install dependencies:
+
+```bash
+pnpm install
+```
+
 ### Quick Examples
 
 ```bash
