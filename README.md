@@ -35,11 +35,15 @@ export JUP_API_KEY=your_api_key_here
 export SOLANA_RPC_URL=https://your-rpc.com
 ```
 
+`JUP_API_KEY` is required for all Jupiter API calls. `SOLANA_RPC_URL` is optional and only used by `send-transaction`.
+
 ### 3. Wallet Setup
 
 You'll need a Solana wallet file to sign transactions.
 
 > **SECURITY NOTE**: This tool only accepts wallet files, not private keys via command line arguments. This prevents exposure in shell history and process listings.
+>
+> Wallet files contain private key material. Do not use a high-value wallet with this workflow. Prefer a dedicated low-balance wallet, use ephemeral keys for testing, and use hardware signing where possible.
 
 ```bash
 # Generate new wallet

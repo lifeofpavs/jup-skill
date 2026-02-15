@@ -1,6 +1,16 @@
 ---
 name: jupiter-skill
 description: Execute Jupiter API operations on Solana - fetch quotes, sign transactions, execute swaps, prediction markets. Use when implementing token swaps, DCA, limit orders, lending, prediction markets, or any Jupiter integration. Includes scripts for Ultra and Metis swap flows.
+metadata:
+  primary_credential: JUP_API_KEY
+  required_environment_variables:
+    - JUP_API_KEY
+  optional_environment_variables:
+    - SOLANA_RPC_URL
+  required_config_paths:
+    - ~/.config/solana/id.json
+  sensitive_inputs:
+    - Solana wallet JSON file containing private key material
 ---
 
 # Jupiter API Skill
@@ -37,6 +47,15 @@ pnpm install
    export JUP_API_KEY=your_api_key_here
    ```
    Or pass via `--api-key` flag on each command.
+
+## Wallet Safety
+
+Signing requires access to a local Solana wallet JSON file (`--wallet`), which contains private key material.
+
+- Do not use a high-value wallet for automation.
+- Prefer a dedicated low-balance wallet for this workflow.
+- For testing, prefer ephemeral keys.
+- If your setup supports it, prefer hardware signing over raw key files.
 
 ## Scripts
 
