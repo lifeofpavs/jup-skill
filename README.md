@@ -158,6 +158,37 @@ Check that your wallet has enough SOL for fees and the input token. Note: Even "
 
 ## Resources
 
+Freshness note: this repo documents the Jupiter API flow, but the API can change. After each new run/session, check the latest docs at [dev.jup.ag](https://dev.jup.ag) before executing.
+
+### Docs URLs for Claude Sync
+
+Check these first on each run/session:
+
+- `https://dev.jup.ag/llms.txt`
+- `https://dev.jup.ag/llms-full.txt`
+
+Then verify workflow-specific pages:
+
+- `https://dev.jup.ag/get-started/index.md`
+- `https://dev.jup.ag/portal/setup.md`
+- `https://dev.jup.ag/portal/rate-limit.md`
+- `https://dev.jup.ag/portal/responses.md`
+- `https://dev.jup.ag/docs/ultra/index.md`
+- `https://dev.jup.ag/docs/ultra/get-started.md`
+- `https://dev.jup.ag/docs/ultra/get-order.md`
+- `https://dev.jup.ag/docs/ultra/execute-order.md`
+- `https://dev.jup.ag/docs/ultra/response.md`
+- `https://dev.jup.ag/docs/ultra/rate-limit.md`
+- `https://dev.jup.ag/docs/ultra/search-token.md`
+- `https://dev.jup.ag/docs/swap/index.md`
+- `https://dev.jup.ag/docs/swap/get-quote.md`
+- `https://dev.jup.ag/docs/swap/build-swap-transaction.md`
+- `https://dev.jup.ag/docs/swap/send-swap-transaction.md`
+- `https://dev.jup.ag/docs/swap/common-errors.md`
+- `https://dev.jup.ag/updates/index.md`
+
+Any Jupiter docs page can also be fetched as markdown by appending `.md` to the path.
+
 - [Jupiter Portal](https://portal.jup.ag) - API key management
 - [Jupiter Docs](https://dev.jup.ag) - Full documentation
 - [Status Page](https://status.jup.ag) - API status
