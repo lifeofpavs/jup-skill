@@ -65,15 +65,7 @@ async function sendTransaction(options: SendOptions): Promise<void> {
     console.error("Sign the transaction first using: pnpm wallet-sign --unsigned-tx ...");
     process.exit(1);
   }
-
-  // Check if first signature is not empty (indicating it was signed)
-  const firstSig = transaction.signatures[0];
-  if (firstSig.every((byte) => byte === 0)) {
-    console.error("Error: Transaction appears to be unsigned (empty signature)");
-    console.error("Sign the transaction first using: pnpm wallet-sign --unsigned-tx ...");
-    process.exit(1);
-  }
-
+  
   // Create connection
   const connection = new Connection(rpcUrl, "confirmed");
 
